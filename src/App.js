@@ -7,17 +7,24 @@ export default function App() {
 
   const [dice, setDice] = React.useState(allNewDice());
   const [tenzies, setTenzies] = React.useState(false);
+  const [score, setScore] = React.useState(0);
+  const [maxScore, setMaxScore] = React.useState(
+    () => JSON.parse(localStorage.getItem("maxScore")) || 0
+  );
 
   React.useEffect(() => {
     const allHeld = dice.every(die => die.isHeld);
     const firstValue = dice[0].value;
     const allSameValue = dice.every(die => die.value === firstValue);
-
+    
     if (allHeld && allSameValue) {
       setTenzies(true);
+      setMaxScore(Math.max(score, maxScore));
       console.log("You Won!!!");
     }
-  }, [dice]);
+
+    localStorage.setItem("maxScore", JSON.stringify(maxScore));
+  }, [dice, maxScore, score]);
 
   function generateNewDie() {
     return ({
@@ -38,6 +45,7 @@ export default function App() {
   function rollDice() {
     if (!tenzies) {
       setDice(oldDice => oldDice.map(die => {
+        setScore(score - 1);
         return die.isHeld ?
           die :
           generateNewDie()
@@ -46,14 +54,24 @@ export default function App() {
     else {
       setTenzies(false);
       setDice(allNewDice());
+      setScore(0);
     }
   }
 
   function holdDice(id) {
     setDice(oldDice => oldDice.map(die => {
-      return die.id === id ?
-        { ...die, isHeld: !die.isHeld } :
-        die
+      if(die.id === id) {
+        if(!die.isHeld) {
+          setScore(score + 5);
+        }
+        else {
+          setScore(score - 5);
+        }
+        return { ...die, isHeld: !die.isHeld };
+      }
+      else {
+        return die;
+      }
     }));
   }
 
@@ -66,6 +84,11 @@ export default function App() {
     />
   ));
 
+  function handleReset() {
+    localStorage.setItem("maxScore", JSON.stringify(0));
+    setMaxScore(0);
+  }
+
   return (
     <main>
       {tenzies && <Confetti />}
@@ -74,12 +97,21 @@ export default function App() {
       <div className='dice-container'>
         {diceElements}
       </div>
-      <button
-        className="roll-dice"
-        onClick={rollDice}
-      >
-        {tenzies ? "New Game" : "Roll"}
-      </button>
+      <div className='btns'>
+        <div className='score'>
+          <h3>Your Score : {score}</h3>
+        </div>
+        <button
+          className="roll-dice"
+          onClick={rollDice}
+        >
+          {tenzies ? "New Game" : "Roll"}
+        </button>
+        <div className='highscore'>
+          <h3 className='highscore-heading'>High Score : {maxScore}</h3>
+          <button className='reset' onClick={handleReset}>R</button>
+        </div>
+      </div>
     </main >
   );
 }
